@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Make Dream Digital Agency — Sales CRM Portal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- SheetJS CDN for Excel Import/Export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .badge-high { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .badge-medium { background-color: #fffbe0; color: #d97706; border: 1px solid #fef3c7; }
+    .badge-low { background-color: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen selection:bg-indigo-600 selection:text-white">
+
+  <!-- LOGIN CONTAINER -->
+  <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 bg-opacity-90 backdrop-blur-md p-4">
+    <div class="bg-white rounded-3xl shadow-2xl p-8 sm:p-10 max-w-md w-full border border-slate-100">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-indigo-600 rounded-2xl mx-auto flex items-center justify-center text-white text-2xl font-bold shadow-xl shadow-indigo-200 mb-4 ring-4 ring-indigo-50">
+          MD
+        </div>
+        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Make Dream Digital Agency</h2>
+        <p class="text-xs text-slate-500 mt-1 uppercase tracking-wider font-semibold">Sales CRM & Pipeline Portal</p>
+      </div>
+
+      <form onsubmit="handleLogin(event)" class="space-y-5">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Select User / Salesman</label>
+          <div class="relative">
+            <select id="login-user-select" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none text-slate-700 text-sm font-semibold transition">
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Password</label>
+          <div class="relative">
+            <input type="password" id="login-password" required placeholder="Enter Password" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none text-slate-700 text-sm font-semibold transition">
+            <button type="button" onclick="togglePassVisibility('login-password')" class="absolute right-4 top-4 text-slate-400 hover:text-indigo-600 transition">
+              <i class="fa-solid fa-eye text-sm"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="login-error" class="hidden p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 font-bold flex items-center gap-2">
+          <i class="fa-solid fa-circle-exclamation"></i> Invalid password! Please try again.
+        </div>
+
+        <button type="submit" class="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold rounded-2xl shadow-xl shadow-indigo-200 transition duration-200 flex items-center justify-center gap-2 text-sm">
+          <i class="fa-solid fa-right-to-bracket"></i> Login to Portal
+        </button>
+      </form>
+
+      <div class="mt-8 text-center text-xs text-slate-400 border-t border-slate-100 pt-5">
+        Select Correct User <code class="bg-slate-100 px-2.5 py-1 rounded-lg text-indigo-600 font-bold">And Password</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CRM APP CONTAINER -->
+  <div id="app-container" class="hidden min-h-screen flex flex-col md:flex-row">
+
+    <!-- SIDEBAR -->
+    <aside class="w-full md:w-72 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col border-r border-slate-800 shadow-xl">
+      <div class="p-6 border-b border-slate-800/80 flex items-center gap-3.5">
+        <div class="w-11 h-11 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-500/30">
+          MD
+        </div>
+        <div>
+          <h1 class="font-bold text-white text-base tracking-tight leading-tight">Make Dream</h1>
+          <p class="text-xs text-indigo-400 font-medium">Digital Sales CRM</p>
+        </div>
+      </div>
+
+      <!-- CURRENT USER INFO BADGE -->
+      <div class="mx-5 my-5 p-3.5 bg-slate-800/70 rounded-2xl border border-slate-700/50 flex items-center gap-3.5 shadow-inner">
+        <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-sm ring-1 ring-indigo-500/30" id="user-avatar">
+          AD
+        </div>
+        <div class="overflow-hidden">
+          <p class="text-xs font-bold text-white truncate" id="user-display-name">Super Admin</p>
+          <p class="text-[11px] text-emerald-400 font-semibold capitalize flex items-center gap-1.5 mt-0.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> <span id="user-role-badge">Super Admin</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- NAVIGATION -->
+      <nav class="flex-1 px-4 space-y-1.5 text-sm font-semibold">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-slate-300 hover:bg-slate-800 hover:text-white transition group">
+          <i class="fa-solid fa-chart-pie w-5 text-indigo-400 group-hover:scale-110 transition"></i> Dashboard
+        </button>
+        <button onclick="switchTab('leads')" id="nav-leads" class="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
+          <span class="flex items-center gap-3.5"><i class="fa-solid fa-users w-5"></i> Lead Database</span>
+          <span id="nav-lead-count" class="text-xs bg-indigo-700 px-2.5 py-0.5 rounded-full font-bold shadow-inner">0</span>
+        </button>
+        <button onclick="switchTab('pipeline')" id="nav-pipeline" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-slate-300 hover:bg-slate-800 hover:text-white transition group">
+          <i class="fa-solid fa-kanban w-5 text-indigo-400 group-hover:scale-110 transition"></i> Kanban Pipeline
+        </button>
+        <!-- TEAM TAB ONLY FOR ADMIN -->
+        <button onclick="switchTab('team')" id="nav-team" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-slate-300 hover:bg-slate-800 hover:text-white transition group">
+          <i class="fa-solid fa-user-group w-5 text-indigo-400 group-hover:scale-110 transition"></i> Sales Team & Revenue
+        </button>
+      </nav>
+
+      <div class="p-5 border-t border-slate-800/80">
+        <button onclick="logout()" class="w-full py-3 px-4 bg-slate-800/80 hover:bg-rose-600/20 hover:text-rose-400 text-slate-400 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition border border-slate-700/50">
+          <i class="fa-solid fa-power-off"></i> Logout Session
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 flex flex-col overflow-y-auto">
+
+      <!-- TOP BAR -->
+      <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 sm:px-8 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sticky top-0 z-20 shadow-xs">
+        <div>
+          <h2 id="page-title" class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Lead Database & Management</h2>
+          <p id="page-subtitle" class="text-xs text-slate-500 font-medium mt-0.5">Make Dream Digital Agency Commercial CRM Portal</p>
+        </div>
+
+        <div class="flex items-center gap-3 flex-wrap">
+          <button onclick="openNewLeadModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-2xl text-xs font-bold flex items-center gap-2 transition shadow-md shadow-indigo-200">
+            <i class="fa-solid fa-plus text-xs"></i> Add New Lead
+          </button>
+
+          <button onclick="triggerExcelUpload()" id="btn-import-top" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-2xl text-xs font-bold flex items-center gap-2 transition shadow-md shadow-emerald-200">
+            <i class="fa-solid fa-file-excel text-xs"></i> Import Excel
+          </button>
+          <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelImport(event)">
+
+          <button onclick="exportToExcel()" class="px-4 py-2.5 bg-white hover:bg-slate-50 active:scale-95 text-slate-700 border border-slate-200 rounded-2xl text-xs font-bold flex items-center gap-2 transition shadow-xs">
+            <i class="fa-solid fa-download text-xs text-slate-500"></i> Export
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTENT BODY -->
+      <div class="p-6 sm:p-8 space-y-8 max-w-7xl mx-auto w-full">
+
+        <!-- TAB 1: DASHBOARD VIEW -->
+        <div id="tab-dashboard" class="hidden space-y-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition">
+              <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Accessible Leads</p>
+              <h3 class="text-3xl font-extrabold text-slate-900 mt-2" id="dash-total-leads">0</h3>
+            </div>
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition">
+              <p class="text-xs font-bold text-rose-500 uppercase tracking-wider">High Priority Leads</p>
+              <h3 class="text-3xl font-extrabold text-rose-600 mt-2" id="dash-high-priority">0</h3>
+            </div>
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition">
+              <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider">Closed / Won Deals</p>
+              <h3 class="text-3xl font-extrabold text-emerald-600 mt-2" id="dash-won-deals">0</h3>
+            </div>
+            <div class="bg-gradient-to-br from-indigo-900 to-slate-900 text-white p-6 rounded-3xl shadow-xl shadow-indigo-950/20">
+              <p class="text-xs font-bold text-indigo-300 uppercase tracking-wider">Total Revenue Generated</p>
+              <h3 class="text-3xl font-extrabold mt-2" id="dash-total-revenue">₹0</h3>
+            </div>
+          </div>
+
+          <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
+            <h4 class="font-bold text-slate-900 text-base mb-6 flex items-center gap-2">
+              <i class="fa-solid fa-chart-bar text-indigo-600"></i> Category Distribution Overview
+            </h4>
+            <div id="category-chart-list" class="space-y-4"></div>
+          </div>
+        </div>
+
+        <!-- TAB 2: LEADS TABLE VIEW -->
+        <div id="tab-leads" class="space-y-5">
+          <!-- SEARCH & FILTERS BAR -->
+          <div class="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs flex flex-col lg:flex-row gap-4 items-center justify-between">
+            <div class="w-full lg:w-96 relative">
+              <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+              <input type="text" id="search-input" oninput="renderLeadsTable()" placeholder="Search lead name, phone, locality..." class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+            </div>
+
+            <div class="flex flex-wrap gap-3 w-full lg:w-auto">
+              <select id="filter-priority" onchange="renderLeadsTable()" class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="ALL">All Priorities</option>
+                <option value="High">High Priority</option>
+                <option value="Medium">Medium Priority</option>
+              </select>
+
+              <select id="filter-status" onchange="renderLeadsTable()" class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="ALL">All CRM Stages</option>
+                <option value="New Lead">New Lead</option>
+                <option value="Contact Attempted">Contact Attempted</option>
+                <option value="Contacted / Interested">Contacted / Interested</option>
+                <option value="Meeting Scheduled">Meeting Scheduled</option>
+                <option value="Proposal Sent">Proposal Sent</option>
+                <option value="Closed / Won">Closed / Won</option>
+              </select>
+
+              <select id="filter-assignee" onchange="renderLeadsTable()" class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden">
+                <option value="ALL">All Team Members</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- DATA TABLE -->
+          <div class="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-50/70 border-b border-slate-200 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                    <th class="py-4 px-6">Lead ID & Business</th>
+                    <th class="py-4 px-5">Category</th>
+                    <th class="py-4 px-5">Locality / Address</th>
+                    <th class="py-4 px-5">Contact Phone</th>
+                    <th class="py-4 px-5">Service Potential</th>
+                    <th class="py-4 px-5">Priority</th>
+                    <th class="py-4 px-5">Assigned To</th>
+                    <th class="py-4 px-5">Stage & Deal Value</th>
+                    <th class="py-4 px-6 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="leads-table-body" class="divide-y divide-slate-100 text-xs text-slate-700 font-medium">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: KANBAN PIPELINE -->
+        <div id="tab-pipeline" class="hidden space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-5 overflow-x-auto pb-4">
+            <div class="bg-slate-200/50 p-4 rounded-3xl border border-slate-200 min-w-[280px]">
+              <div class="flex items-center justify-between font-bold text-xs text-slate-700 mb-4 px-2">
+                <span>NEW LEADS</span>
+                <span id="cnt-stage-new" class="bg-slate-300 text-slate-800 px-2.5 py-0.5 rounded-full text-[11px] shadow-xs">0</span>
+              </div>
+              <div id="kanban-new" class="space-y-3 min-h-[450px]"></div>
+            </div>
+
+            <div class="bg-amber-50/60 p-4 rounded-3xl border border-amber-200/60 min-w-[280px]">
+              <div class="flex items-center justify-between font-bold text-xs text-amber-900 mb-4 px-2">
+                <span>CONTACTED / ATTEMPTED</span>
+                <span id="cnt-stage-contacted" class="bg-amber-200 text-amber-900 px-2.5 py-0.5 rounded-full text-[11px] shadow-xs">0</span>
+              </div>
+              <div id="kanban-contacted" class="space-y-3 min-h-[450px]"></div>
+            </div>
+
+            <div class="bg-indigo-50/60 p-4 rounded-3xl border border-indigo-200/60 min-w-[280px]">
+              <div class="flex items-center justify-between font-bold text-xs text-indigo-900 mb-4 px-2">
+                <span>PROPOSAL SENT</span>
+                <span id="cnt-stage-proposal" class="bg-indigo-200 text-indigo-900 px-2.5 py-0.5 rounded-full text-[11px] shadow-xs">0</span>
+              </div>
+              <div id="kanban-proposal" class="space-y-3 min-h-[450px]"></div>
+            </div>
+
+            <div class="bg-emerald-50/60 p-4 rounded-3xl border border-emerald-200/60 min-w-[280px]">
+              <div class="flex items-center justify-between font-bold text-xs text-emerald-900 mb-4 px-2">
+                <span>CLOSED / WON</span>
+                <span id="cnt-stage-won" class="bg-emerald-200 text-emerald-900 px-2.5 py-0.5 rounded-full text-[11px] shadow-xs">0</span>
+              </div>
+              <div id="kanban-won" class="space-y-3 min-h-[450px]"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: TEAM & REVENUE MANAGEMENT (ADMIN ONLY) -->
+        <div id="tab-team" class="hidden space-y-6">
+          <div class="flex justify-between items-center bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Sales Team Revenue Performance & Credentials</h3>
+              <p class="text-xs text-slate-500 mt-0.5">Monitor revenue generation per salesperson and manage password security.</p>
+            </div>
+            <button onclick="openAddTeamModal()" class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-md shadow-indigo-200 transition">
+              <i class="fa-solid fa-user-plus"></i> Add New Salesman
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="team-cards-container">
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ADD LEAD MODAL -->
+  <div id="modal-add-lead" class="fixed inset-0 z-50 hidden bg-slate-950 bg-opacity-70 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl p-7 sm:p-8 w-full max-w-lg border border-slate-100 transform transition-all">
+      <div class="flex justify-between items-center pb-4 border-b border-slate-100">
+        <h3 class="text-lg font-bold text-slate-900">Add New Commercial Lead</h3>
+        <button onclick="closeModal('modal-add-lead')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 font-bold transition">✕</button>
+      </div>
+
+      <form onsubmit="saveNewLead(event)" class="space-y-4 mt-5 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Business Name *</label>
+          <input type="text" id="new-lead-name" required placeholder="e.g. Royal Sweets & Restaurant" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-semibold focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Category</label>
+            <input type="text" id="new-lead-category" placeholder="e.g. Cafe & Restaurant" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-semibold focus:ring-2 focus:ring-indigo-500 outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Phone Number *</label>
+            <input type="text" id="new-lead-phone" required placeholder="+91 9830000000" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-semibold focus:ring-2 focus:ring-indigo-500 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Address / Locality</label>
+          <input type="text" id="new-lead-address" placeholder="e.g. Park Street, Kolkata" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-semibold focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Service Potential</label>
+            <input type="text" id="new-lead-service" placeholder="e.g. Website & SEO" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-semibold focus:ring-2 focus:ring-indigo-500 outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Priority</label>
+            <select id="new-lead-priority" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-semibold focus:ring-2 focus:ring-indigo-500 outline-none">
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="admin-new-assign-group" class="hidden">
+          <label class="block font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Assign To Salesman</label>
+          <select id="new-lead-assignee" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"></select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Initial Auditor Notes</label>
+          <textarea id="new-lead-notes" rows="2.5" placeholder="Initial observation..." class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+        </div>
+
+        <button type="submit" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 transition text-sm">
+          Save New Lead
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT TEAM MODAL -->
+  <div id="modal-team" class="fixed inset-0 z-50 hidden bg-slate-950 bg-opacity-70 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl p-7 sm:p-8 w-full max-w-md border border-slate-100 transform transition-all">
+      <div class="flex justify-between items-center pb-4 border-b border-slate-100">
+        <h3 id="modal-team-title" class="text-lg font-bold text-slate-900">Add Salesman</h3>
+        <button onclick="closeModal('modal-team')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 font-bold transition">✕</button>
+      </div>
+
+      <form onsubmit="saveTeamUser(event)" class="space-y-4 mt-5 text-xs">
+        <input type="hidden" id="team-user-id">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Salesman Name *</label>
+          <input type="text" id="team-user-name" required placeholder="e.g. Rahul Verma" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-semibold focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Password *</label>
+          <input type="text" id="team-user-password" required placeholder="Enter password" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-mono font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <button type="submit" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 transition text-sm">
+          Save Credentials
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- LEAD DETAILS MODAL / DRAWER -->
+  <div id="modal-lead-detail" class="fixed inset-0 z-50 hidden bg-slate-950 bg-opacity-70 backdrop-blur-xs flex justify-end">
+    <div class="bg-white w-full max-w-xl h-full shadow-2xl p-6 sm:p-8 overflow-y-auto flex flex-col justify-between transform transition-transform">
+      <div>
+        <div class="flex items-center justify-between pb-5 border-b border-slate-100">
+          <div>
+            <span id="detail-lead-id" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg">LEAD-001</span>
+            <h3 id="detail-business-name" class="text-xl font-bold text-slate-900 mt-1.5">Lead Name</h3>
+          </div>
+          <button onclick="closeModal('modal-lead-detail')" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 font-bold transition">✕</button>
+        </div>
+
+        <div class="py-6 space-y-5 text-xs">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <span class="text-slate-400 font-bold uppercase tracking-wider block mb-1">Category</span>
+              <span id="detail-category" class="font-bold text-slate-800 text-sm">-</span>
+            </div>
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <span class="text-slate-400 font-bold uppercase tracking-wider block mb-1">Phone Contact</span>
+              <span id="detail-phone" class="font-bold text-slate-800 text-sm font-mono">-</span>
+            </div>
+          </div>
+
+          <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <span class="text-slate-400 font-bold uppercase tracking-wider block mb-1">Address / Locality</span>
+            <span id="detail-address" class="font-bold text-slate-800 text-sm">-</span>
+          </div>
+
+          <div class="p-4 bg-indigo-50/70 rounded-2xl border border-indigo-100">
+            <span class="text-indigo-600 font-bold uppercase tracking-wider block mb-1">Potential Service to Sell</span>
+            <span id="detail-service" class="font-extrabold text-indigo-950 text-sm">-</span>
+          </div>
+
+          <!-- ADMIN ASSIGNMENT / REASSIGNMENT CONTROL -->
+          <div id="admin-assign-box" class="p-4 bg-amber-50 rounded-2xl border border-amber-200 hidden">
+            <label class="block font-bold text-amber-900 uppercase tracking-wider mb-2">Assign / Reassign Lead To:</label>
+            <select id="detail-assignee-select" onchange="assignLeadFromModal()" class="w-full p-3 bg-white border border-amber-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"></select>
+          </div>
+
+          <!-- Calling Status Update & Deal Value / Revenue -->
+          <div class="p-5 bg-slate-100/80 rounded-2xl border border-slate-200/80 space-y-4">
+            <label class="block font-bold text-slate-900 uppercase tracking-wider">Log Call Outcome & Stage</label>
+            <select id="update-lead-status" class="w-full p-3.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="New Lead">New Lead</option>
+              <option value="Contact Attempted">Contact Attempted</option>
+              <option value="Contacted / Interested">Contacted / Interested</option>
+              <option value="Meeting Scheduled">Meeting Scheduled</option>
+              <option value="Proposal Sent">Proposal Sent</option>
+              <option value="Closed / Won">Closed / Won</option>
+            </select>
+
+            <div>
+              <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">Deal Value / Revenue (₹)</label>
+              <input type="number" id="update-lead-revenue" placeholder="e.g. 25000" class="w-full p-3.5 bg-white border border-slate-200 rounded-xl font-mono font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <textarea id="update-lead-calling-notes" rows="3" placeholder="Enter calling updates & notes..." class="w-full p-3.5 bg-white border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-5 border-t border-slate-100 space-y-3">
+        <div class="flex gap-3">
+          <a id="btn-call-link" href="#" class="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-2xl text-center font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-indigo-200 transition">
+            <i class="fa-solid fa-phone"></i> Call
+          </a>
+          <a id="btn-wa-link" target="_blank" href="#" class="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-2xl text-center font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-200 transition">
+            <i class="fa-brands fa-whatsapp"></i> WhatsApp
+          </a>
+          <button onclick="saveLeadStatusUpdate()" class="px-6 py-3.5 bg-slate-900 hover:bg-slate-950 active:scale-95 text-white rounded-2xl font-bold text-xs transition shadow-md">
+            Save
+          </button>
+        </div>
+
+        <button id="btn-delete-lead" onclick="deleteCurrentLead()" class="w-full py-3 bg-rose-50 hover:bg-rose-100 active:scale-98 text-rose-600 border border-rose-200 rounded-2xl font-bold text-xs transition flex items-center justify-center gap-2 hidden">
+          <i class="fa-solid fa-trash"></i> Delete Lead (Admin Full Control)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    const DEFAULT_USERS = [
+      { id: 'admin', name: 'Super Admin', role: 'admin', pass: 'Admin@1947' },
+      { id: 'atif', name: 'Atif', role: 'exec', pass: 'atif123' },
+      { id: 'farzana', name: 'Farzana', role: 'exec', pass: 'farzana123' },
+      { id: 'maitali', name: 'Maitali', role: 'exec', pass: 'maitali123' }
+    ];
+
+    let teamUsers = JSON.parse(localStorage.getItem('md_crm_users_v8')) || DEFAULT_USERS;
+    let leadsData = JSON.parse(localStorage.getItem('md_crm_leads_v8')) || [];
+
+    if (leadsData.length === 0) {
+      const sampleCategories = ['Cafe & Restaurant', 'Gym & Fitness', 'Doctor Clinic', 'Hotel & Guest House', 'Real Estate'];
+      const sampleServices = ['Website Development', 'Custom CRM Software', 'WhatsApp Marketing', 'SEO & Lead Gen'];
+      
+      for (let i = 1; i <= 160; i++) {
+        const salesIds = teamUsers.filter(u => u.role === 'exec').map(u => u.id);
+        const assignedSales = salesIds[i % salesIds.length];
+
+        leadsData.push({
+          "Lead ID": 'KOL-LEAD-' + String(i).padStart(3, '0'),
+          "Business Name": `Kolkata Business #${i}`,
+          "Category": sampleCategories[i % sampleCategories.length],
+          "Address / Locality": `Sector ${i % 5 + 1}, Kolkata`,
+          "Public Phone": `+91 98300${10000 + i}`,
+          "Website Status": "No Website",
+          "Potential Service to Sell": sampleServices[i % sampleServices.length],
+          "Lead Priority": i % 3 === 0 ? "Medium" : "High",
+          "Auditor Notes": "Unserviced B2B business lead in regional scan.",
+          "Calling Update": "",
+          "assigned_to": assignedSales,
+          "crm_status": "New Lead",
+          "revenue": 0
+        });
+      }
+      localStorage.setItem('md_crm_leads_v8', JSON.stringify(leadsData));
+      localStorage.setItem('md_crm_users_v8', JSON.stringify(teamUsers));
+    }
+
+    let currentUser = null;
+    let selectedLeadId = null;
+
+    function initLoginUserDropdown() {
+      const select = document.getElementById('login-user-select');
+      select.innerHTML = teamUsers.map(u => `
+        <option value="${u.id}">${u.name} (${u.role === 'admin' ? 'Super Admin' : 'Sales Executive'})</option>
+      `).join('');
+    }
+    initLoginUserDropdown();
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const userId = document.getElementById('login-user-select').value;
+      const pass = document.getElementById('login-password').value;
+
+      const user = teamUsers.find(u => u.id === userId);
+
+      if (user && user.pass === pass) {
+        currentUser = user;
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
+
+        document.getElementById('user-display-name').innerText = user.name;
+        document.getElementById('user-role-badge').innerText = user.role === 'admin' ? 'Super Admin' : 'Sales Exec';
+        document.getElementById('user-avatar').innerText = user.name.substring(0, 2).toUpperCase();
+
+        const teamNavBtn = document.getElementById('nav-team');
+        if (user.role === 'admin') {
+          teamNavBtn.classList.remove('hidden');
+          document.getElementById('filter-assignee').classList.remove('hidden');
+          document.getElementById('btn-import-top').classList.remove('hidden');
+          document.getElementById('admin-assign-box').classList.remove('hidden');
+          document.getElementById('btn-delete-lead').classList.remove('hidden');
+          document.getElementById('admin-new-assign-group').classList.remove('hidden');
+        } else {
+          teamNavBtn.classList.add('hidden');
+          document.getElementById('filter-assignee').classList.add('hidden');
+          document.getElementById('btn-import-top').classList.add('hidden');
+          document.getElementById('admin-assign-box').classList.add('hidden');
+          document.getElementById('btn-delete-lead').classList.add('hidden');
+          document.getElementById('admin-new-assign-group').classList.add('hidden');
+        }
+
+        populateAssigneeFilter();
+        populateNewLeadAssigneeDropdown();
+        renderAllViews();
+      } else {
+        document.getElementById('login-error').classList.remove('hidden');
+      }
+    }
+
+    function togglePassVisibility(id) {
+      const input = document.getElementById(id);
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById('app-container').classList.add('hidden');
+      document.getElementById('login-screen').classList.remove('hidden');
+      document.getElementById('login-password').value = '';
+      document.getElementById('login-error').classList.add('hidden');
+    }
+
+    function getAccessibleLeads() {
+      if (!currentUser) return [];
+      if (currentUser.role === 'admin') return leadsData;
+      return leadsData.filter(l => l.assigned_to === currentUser.id);
+    }
+
+    function populateAssigneeFilter() {
+      const select = document.getElementById('filter-assignee');
+      const sales = teamUsers.filter(u => u.role === 'exec');
+      select.innerHTML = `<option value="ALL">All Sales Execs</option>` + sales.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    }
+
+    function populateNewLeadAssigneeDropdown() {
+      const select = document.getElementById('new-lead-assignee');
+      const sales = teamUsers.filter(u => u.role === 'exec');
+      select.innerHTML = sales.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    }
+
+    function renderAllViews() {
+      renderDashboard();
+      renderLeadsTable();
+      renderKanban();
+      if (currentUser.role === 'admin') renderTeam();
+    }
+
+    function renderDashboard() {
+      const accessible = getAccessibleLeads();
+      document.getElementById('dash-total-leads').innerText = accessible.length;
+      document.getElementById('nav-lead-count').innerText = accessible.length;
+
+      document.getElementById('dash-high-priority').innerText = accessible.filter(l => l['Lead Priority'] === 'High').length;
+      
+      const wonLeads = accessible.filter(l => l.crm_status === 'Closed / Won');
+      document.getElementById('dash-won-deals').innerText = wonLeads.length;
+
+      const totalRev = wonLeads.reduce((sum, l) => sum + (Number(l.revenue) || 0), 0);
+      document.getElementById('dash-total-revenue').innerText = '₹' + totalRev.toLocaleString('en-IN');
+
+      const catCounts = {};
+      accessible.forEach(l => catCounts[l.Category] = (catCounts[l.Category] || 0) + 1);
+
+      document.getElementById('category-chart-list').innerHTML = Object.keys(catCounts).map(cat => `
+        <div>
+          <div class="flex justify-between text-xs font-bold text-slate-700 mb-1.5">
+            <span>${cat}</span>
+            <span class="text-indigo-600 font-extrabold">${catCounts[cat]} leads</span>
+          </div>
+          <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden shadow-inner">
+            <div class="bg-indigo-600 h-full rounded-full transition-all duration-500" style="width: ${(catCounts[cat]/accessible.length)*100}%"></div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderLeadsTable() {
+      let leads = getAccessibleLeads();
+      const search = document.getElementById('search-input').value.toLowerCase();
+      const pri = document.getElementById('filter-priority').value;
+      const st = document.getElementById('filter-status').value;
+      const ass = document.getElementById('filter-assignee').value;
+
+      leads = leads.filter(l => {
+        const matchSearch = (l['Business Name'] + ' ' + l['Address / Locality'] + ' ' + l['Public Phone']).toLowerCase().includes(search);
+        const matchPri = pri === 'ALL' || l['Lead Priority'] === pri;
+        const matchSt = st === 'ALL' || (l.crm_status || 'New Lead') === st;
+        const matchAss = currentUser.role !== 'admin' || ass === 'ALL' || l.assigned_to === ass;
+        return matchSearch && matchPri && matchSt && matchAss;
+      });
+
+      const tbody = document.getElementById('leads-table-body');
+      if (leads.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="p-10 text-center text-slate-400 font-bold">No leads available in this view.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = leads.map(l => {
+        const salesUser = teamUsers.find(u => u.id === l.assigned_to);
+        const revBadge = Number(l.revenue) > 0 ? `<div class="text-emerald-600 font-extrabold mt-0.5">₹${Number(l.revenue).toLocaleString('en-IN')}</div>` : '';
+        return `
+          <tr class="hover:bg-slate-50/80 transition border-b border-slate-100">
+            <td class="py-4 px-6 font-bold text-slate-900">
+              <div class="text-[11px] text-indigo-600 font-bold mb-0.5">${l['Lead ID']}</div>
+              <div class="text-sm font-bold">${l['Business Name']}</div>
+            </td>
+            <td class="py-4 px-5 text-slate-600 font-semibold">${l.Category || '-'}</td>
+            <td class="py-4 px-5 text-slate-500 max-w-xs truncate">${l['Address / Locality'] || '-'}</td>
+            <td class="py-4 px-5 font-mono font-bold text-slate-800">${l['Public Phone']}</td>
+            <td class="py-4 px-5 text-slate-700 font-semibold max-w-xs truncate">${l['Potential Service to Sell'] || '-'}</td>
+            <td class="py-4 px-5"><span class="px-2.5 py-1 text-[10px] font-extrabold rounded-full ${l['Lead Priority'] === 'High' ? 'badge-high' : 'badge-medium'}">${l['Lead Priority']}</span></td>
+            <td class="py-4 px-5 text-slate-700 font-bold">${salesUser ? salesUser.name : 'Unassigned'}</td>
+            <td class="py-4 px-5">
+              <span class="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-[10px] font-extrabold inline-block mb-1 shadow-2xs">${l.crm_status || 'New Lead'}</span>
+              ${revBadge}
+            </td>
+            <td class="py-4 px-6 text-right">
+              <button onclick="openLeadModal('${l['Lead ID']}')" class="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 active:scale-95 text-indigo-600 rounded-xl font-bold text-xs transition shadow-2xs">View & Assign</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderKanban() {
+      const leads = getAccessibleLeads();
+      const stages = { 'New Lead': 'kanban-new', 'Contact Attempted': 'kanban-contacted', 'Proposal Sent': 'kanban-proposal', 'Closed / Won': 'kanban-won' };
+      Object.keys(stages).forEach(k => document.getElementById(stages[k]).innerHTML = '');
+
+      leads.forEach(l => {
+        const target = stages[l.crm_status || 'New Lead'] || 'kanban-new';
+        const revText = Number(l.revenue) > 0 ? `<div class="text-emerald-600 font-extrabold mt-1.5 text-[11px]">₹${Number(l.revenue).toLocaleString('en-IN')}</div>` : '';
+        document.getElementById(target).innerHTML += `
+          <div onclick="openLeadModal('${l['Lead ID']}')" class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs cursor-pointer hover:border-indigo-400 hover:shadow-md transition">
+            <span class="text-[10px] font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">${l['Lead ID']}</span>
+            <h5 class="font-bold text-slate-900 text-xs mt-2 truncate">${l['Business Name']}</h5>
+            <p class="text-[11px] text-slate-500 mt-1 truncate"><i class="fa-solid fa-location-dot text-slate-400"></i> ${l['Address / Locality'] || ''}</p>
+            ${revText}
+          </div>
+        `;
+      });
+    }
+
+    function renderTeam() {
+      if (currentUser.role !== 'admin') return;
+      const sales = teamUsers.filter(u => u.role === 'exec');
+      document.getElementById('team-cards-container').innerHTML = sales.map(s => {
+        const sLeads = leadsData.filter(l => l.assigned_to === s.id);
+        const wonLeads = sLeads.filter(l => l.crm_status === 'Closed / Won');
+        const sRevenue = wonLeads.reduce((sum, l) => sum + (Number(l.revenue) || 0), 0);
+
+        return `
+          <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-600 text-white font-bold text-base flex items-center justify-center shadow-md shadow-indigo-200">
+                  ${s.name.substring(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <h4 class="font-bold text-slate-900 text-base">${s.name}</h4>
+                  <p class="text-xs text-slate-500 font-semibold mt-0.5">Assigned Leads: <strong class="text-slate-800">${sLeads.length}</strong></p>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl flex justify-between items-center shadow-inner">
+              <div>
+                <span class="text-[10px] uppercase font-extrabold text-emerald-700 block tracking-wider">Revenue Generated</span>
+                <span class="text-lg font-black text-emerald-900">₹${sRevenue.toLocaleString('en-IN')}</span>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] uppercase font-extrabold text-slate-500 block tracking-wider">Won Deals</span>
+                <span class="text-base font-black text-slate-800">${wonLeads.length}</span>
+              </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100">
+              <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Salesman Password</label>
+              <div class="flex items-center gap-2">
+                <input type="password" id="pass-field-${s.id}" value="${s.pass}" readonly class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-700">
+                <button onclick="togglePassVisibility('pass-field-${s.id}')" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs text-slate-600 transition"><i class="fa-solid fa-eye"></i></button>
+                <button onclick="openEditTeamModal('${s.id}')" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-xs">Edit</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openLeadModal(leadId) {
+      const lead = leadsData.find(l => l['Lead ID'] === leadId);
+      if (!lead) return;
+
+      selectedLeadId = leadId;
+      document.getElementById('detail-lead-id').innerText = lead['Lead ID'];
+      document.getElementById('detail-business-name').innerText = lead['Business Name'];
+      document.getElementById('detail-category').innerText = lead.Category || '-';
+      document.getElementById('detail-phone').innerText = lead['Public Phone'];
+      document.getElementById('detail-address').innerText = lead['Address / Locality'] || '-';
+      document.getElementById('detail-service').innerText = lead['Potential Service to Sell'] || '-';
+
+      document.getElementById('update-lead-status').value = lead.crm_status || 'New Lead';
+      document.getElementById('update-lead-revenue').value = lead.revenue || 0;
+      document.getElementById('update-lead-calling-notes').value = lead['Calling Update'] || '';
+
+      if (currentUser.role === 'admin') {
+        const select = document.getElementById('detail-assignee-select');
+        select.innerHTML = teamUsers.filter(u => u.role === 'exec').map(u => `
+          <option value="${u.id}" ${lead.assigned_to === u.id ? 'selected' : ''}>${u.name}</option>
+        `).join('');
+      }
+
+      const cleanPhone = String(lead['Public Phone'] || '').replace(/[^0-9]/g, '');
+      document.getElementById('btn-call-link').href = `tel:${cleanPhone}`;
+      document.getElementById('btn-wa-link').href = `https://wa.me/${cleanPhone}`;
+
+      document.getElementById('modal-lead-detail').classList.remove('hidden');
+    }
+
+    function assignLeadFromModal() {
+      if (!selectedLeadId || currentUser.role !== 'admin') return;
+      const lead = leadsData.find(l => l['Lead ID'] === selectedLeadId);
+      if (lead) {
+        lead.assigned_to = document.getElementById('detail-assignee-select').value;
+        localStorage.setItem('md_crm_leads_v8', JSON.stringify(leadsData));
+        renderAllViews();
+      }
+    }
+
+    function saveLeadStatusUpdate() {
+      if (!selectedLeadId) return;
+      const lead = leadsData.find(l => l['Lead ID'] === selectedLeadId);
+      if (lead) {
+        lead.crm_status = document.getElementById('update-lead-status').value;
+        lead.revenue = Number(document.getElementById('update-lead-revenue').value) || 0;
+        lead['Calling Update'] = document.getElementById('update-lead-calling-notes').value;
+        localStorage.setItem('md_crm_leads_v8', JSON.stringify(leadsData));
+        closeModal('modal-lead-detail');
+        renderAllViews();
+      }
+    }
+
+    function deleteCurrentLead() {
+      if (!selectedLeadId || currentUser.role !== 'admin') return;
+      if (confirm('Are you sure you want to delete this lead?')) {
+        leadsData = leadsData.filter(l => l['Lead ID'] !== selectedLeadId);
+        localStorage.setItem('md_crm_leads_v8', JSON.stringify(leadsData));
+        closeModal('modal-lead-detail');
+        renderAllViews();
+      }
+    }
+
+    function openNewLeadModal() {
+      document.getElementById('modal-add-lead').classList.remove('hidden');
+    }
+
+    function saveNewLead(e) {
+      e.preventDefault();
+      let assignedToUser = currentUser.id;
+      if (currentUser.role === 'admin') {
+        assignedToUser = document.getElementById('new-lead-assignee').value;
+      }
+
+      const newLead = {
+        "Lead ID": 'KOL-LEAD-' + String(leadsData.length + 1).padStart(3, '0'),
+        "Business Name": document.getElementById('new-lead-name').value,
+        "Category": document.getElementById('new-lead-category').value,
+        "Public Phone": document.getElementById('new-lead-phone').value,
+        "Address / Locality": document.getElementById('new-lead-address').value,
+        "Potential Service to Sell": document.getElementById('new-lead-service').value,
+        "Lead Priority": document.getElementById('new-lead-priority').value,
+        "Auditor Notes": document.getElementById('new-lead-notes').value,
+        "assigned_to": assignedToUser,
+        "crm_status": "New Lead",
+        "revenue": 0
+      };
+
+      leadsData.unshift(newLead);
+      localStorage.setItem('md_crm_leads_v8', JSON.stringify(leadsData));
+      closeModal('modal-add-lead');
+      renderAllViews();
+    }
+
+    function triggerExcelUpload() {
+      if (currentUser.role !== 'admin') return;
+      document.getElementById('excel-file-input').value = "";
+      document.getElementById('excel-file-input').click();
+    }
+
+    // FIXED SHEETPARSER FOR MULTI-SHEET EXCEL FILES (AUTOMATICALLY FINDS 'Lead Database')
+    function handleExcelImport(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const data = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          // Check if 'Lead Database' sheet exists, otherwise pick the first sheet
+          let targetSheetName = workbook.SheetNames[0];
+          if (workbook.SheetNames.includes('Lead Database')) {
+            targetSheetName = 'Lead Database';
+          }
+
+          const sheet = workbook.Sheets[targetSheetName];
+          const importedRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+          if (!importedRows || importedRows.length === 0) {
+            alert("No data found in the selected Excel file sheet.");
+            return;
+          }
+
+          let addedCount = 0;
+          const salesIds = teamUsers.filter(u => u.role === 'exec').map(u => u.id);
+
+          importedRows.forEach((row, idx) => {
+            const bName = row['Business Name'] || row['Business'] || row['Company Name'] || row['Name'] || '';
+            const phone = row['Public Phone'] || row['Phone'] || row['Contact'] || row['Mobile'] || '';
+            
+            // Filter out summary/header rows if any
+            if (bName && !String(bName).includes("KOLKATA METRO")) {
+              const newLeadObj = {
+                "Lead ID": row['Lead ID'] || ('KOL-IMP-' + String(leadsData.length + 1).padStart(3, '0')),
+                "Business Name": String(bName),
+                "Category": String(row['Category'] || 'General'),
+                "Address / Locality": String(row['Address / Locality'] || row['Address'] || row['Locality'] || ''),
+                "Public Phone": String(phone || ''),
+                "Website Status": String(row['Website Status'] || 'No Website'),
+                "Potential Service to Sell": String(row['Potential Service to Sell'] || row['Service'] || 'Digital Services'),
+                "Lead Priority": String(row['Lead Priority'] || row['Priority'] || 'Medium'),
+                "Auditor Notes": String(row['Auditor Notes'] || row['Notes'] || 'Imported via Excel sheet.'),
+                "assigned_to": salesIds[addedCount % salesIds.length],
+                "crm_status": "New Lead",
+                "revenue": Number(row['Revenue'] || row['Deal Value'] || 0)
+              };
+
+              leadsData.unshift(newLeadObj);
+              addedCount++;
+            }
+          });
+
+          localStorage.setItem('md_crm_leads_v8', JSON.stringify(leadsData));
+          alert(`Successfully imported ${addedCount} leads from Excel file!`);
+          renderAllViews();
+        } catch (err) {
+          console.error("Excel Import Error:", err);
+          alert("Failed to parse Excel file. Please ensure it is a valid .xlsx or .csv file.");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function openAddTeamModal() {
+      if (currentUser.role !== 'admin') return;
+      document.getElementById('modal-team-title').innerText = 'Add New Salesman';
+      document.getElementById('team-user-id').value = '';
+      document.getElementById('team-user-name').value = '';
+      document.getElementById('team-user-password').value = '';
+      document.getElementById('modal-team').classList.remove('hidden');
+    }
+
+    function openEditTeamModal(userId) {
+      if (currentUser.role !== 'admin') return;
+      const user = teamUsers.find(u => u.id === userId);
+      if (!user) return;
+
+      document.getElementById('modal-team-title').innerText = 'Edit Salesman Credentials';
+      document.getElementById('team-user-id').value = user.id;
+      document.getElementById('team-user-name').value = user.name;
+      document.getElementById('team-user-password').value = user.pass;
+      document.getElementById('modal-team').classList.remove('hidden');
+    }
+
+    function saveTeamUser(e) {
+      e.preventDefault();
+      const id = document.getElementById('team-user-id').value;
+      const name = document.getElementById('team-user-name').value;
+      const pass = document.getElementById('team-user-password').value;
+
+      if (id) {
+        const user = teamUsers.find(u => u.id === id);
+        if (user) {
+          user.name = name;
+          user.pass = pass;
+        }
+      } else {
+        const newId = 'exec_' + Date.now();
+        teamUsers.push({ id: newId, name: name, role: 'exec', pass: pass });
+      }
+
+      localStorage.setItem('md_crm_users_v8', JSON.stringify(teamUsers));
+      initLoginUserDropdown();
+      closeModal('modal-team');
+      renderTeam();
+      populateAssigneeFilter();
+      populateNewLeadAssigneeDropdown();
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function switchTab(tab) {
+      ['dashboard', 'leads', 'pipeline', 'team'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+      });
+      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+    }
+
+    function exportToExcel() {
+      const ws = XLSX.utils.json_to_sheet(getAccessibleLeads());
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Leads");
+      XLSX.writeFile(wb, "MakeDream_Leads_Export.xlsx");
+    }
+  </script>
+</body>
+</html>
