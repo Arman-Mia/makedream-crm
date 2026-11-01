@@ -67,7 +67,7 @@
       </form>
 
       <div class="mt-8 text-center text-xs text-slate-400 border-t border-slate-100 pt-5">
-        Click Correct User: <code class="bg-slate-100 px-2.5 py-1 rounded-lg text-indigo-600 font-bold"> And Password!</code>
+        Select Correct User: <code class="bg-slate-100 px-2.5 py-1 rounded-lg text-indigo-600 font-bold">And Passsword!</code>
       </div>
     </div>
   </div>
@@ -372,7 +372,7 @@
 
         <div>
           <label class="block font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Password *</label>
-          <input type="text" id="team-user-password" required placeholder="Enter password" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-mono font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
+          <input type="text" id="team-user-password" required placeholder="Enter password" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-mono font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
         </div>
 
         <button type="submit" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 transition text-sm">
@@ -513,7 +513,7 @@
           }
         });
 
-        // 2. Realtime Team Users Listener
+        // 2. Realtime Team Users Listener (Supports Add, Update, and Deletion)
         db.collection("team_users").onSnapshot((snapshot) => {
           const cloudUsers = [];
           snapshot.forEach((doc) => {
@@ -545,7 +545,6 @@
       }
     }
 
-    // Default Seed Users to Firestore if empty
     function seedInitialUsersToCloud() {
       if (isCloudEnabled && db) {
         DEFAULT_USERS.forEach(u => {
@@ -777,13 +776,16 @@
               </div>
             </div>
 
-            <div class="pt-3 border-t border-slate-100">
-              <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Salesman Password</label>
+            <div class="pt-3 border-t border-slate-100 space-y-2">
+              <label class="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Salesman Password</label>
               <div class="flex items-center gap-2">
                 <input type="password" id="pass-field-${s.id}" value="${s.pass}" readonly class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-700">
                 <button onclick="togglePassVisibility('pass-field-${s.id}')" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs text-slate-600 transition"><i class="fa-solid fa-eye"></i></button>
                 <button onclick="openEditTeamModal('${s.id}')" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-xs">Edit</button>
               </div>
+              <button onclick="deleteTeamUser('${s.id}')" class="w-full mt-2 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition border border-rose-200 flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-user-minus"></i> Remove Salesman
+              </button>
             </div>
           </div>
         `;
@@ -893,7 +895,6 @@
       document.getElementById('excel-file-input').click();
     }
 
-    // BATCH EXCEL IMPORT TO FIREBASE CLOUD
     function handleExcelImport(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -1022,6 +1023,24 @@
       renderTeam();
       populateAssigneeFilter();
       populateNewLeadAssigneeDropdown();
+    }
+
+    // REMOVE / DELETE SALESMAN FUNCTION WITH CLOUD SYNC
+    function deleteTeamUser(userId) {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      if (confirm('Are you sure you want to remove this salesman?')) {
+        teamUsers = teamUsers.filter(u => u.id !== userId);
+        localStorage.setItem('md_crm_users_v9', JSON.stringify(teamUsers));
+        
+        if (isCloudEnabled && db) {
+          db.collection("team_users").doc(userId).delete().catch(err => console.log(err));
+        }
+
+        initLoginUserDropdown();
+        renderTeam();
+        populateAssigneeFilter();
+        populateNewLeadAssigneeDropdown();
+      }
     }
 
     function closeModal(id) {
