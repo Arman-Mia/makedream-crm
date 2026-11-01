@@ -67,7 +67,7 @@
       </form>
 
       <div class="mt-8 text-center text-xs text-slate-400 border-t border-slate-100 pt-5">
-        Click Correct User: <code class="bg-slate-100 px-2.5 py-1 rounded-lg text-indigo-600 font-bold">And Password!</code>
+        Click Correct User: <code class="bg-slate-100 px-2.5 py-1 rounded-lg text-indigo-600 font-bold"> And Password!</code>
       </div>
     </div>
   </div>
@@ -185,7 +185,6 @@
 
         <!-- TAB 2: LEADS TABLE VIEW -->
         <div id="tab-leads" class="space-y-5">
-          <!-- SEARCH & FILTERS BAR -->
           <div class="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs flex flex-col lg:flex-row gap-4 items-center justify-between">
             <div class="w-full lg:w-96 relative">
               <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400 text-sm"></i>
@@ -215,7 +214,6 @@
             </div>
           </div>
 
-          <!-- DATA TABLE -->
           <div class="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
             <div class="overflow-x-auto">
               <table class="w-full text-left border-collapse">
@@ -374,7 +372,7 @@
 
         <div>
           <label class="block font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Password *</label>
-          <input type="text" id="team-user-password" required placeholder="Enter password" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-mono font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
+          <input type="text" id="team-user-password" required placeholder="Enter password" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-mono font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
         </div>
 
         <button type="submit" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 transition text-sm">
@@ -418,13 +416,11 @@
             <span id="detail-service" class="font-extrabold text-indigo-950 text-sm">-</span>
           </div>
 
-          <!-- ADMIN ASSIGNMENT / REASSIGNMENT CONTROL -->
           <div id="admin-assign-box" class="p-4 bg-amber-50 rounded-2xl border border-amber-200 hidden">
             <label class="block font-bold text-amber-900 uppercase tracking-wider mb-2">Assign / Reassign Lead To:</label>
             <select id="detail-assignee-select" onchange="assignLeadFromModal()" class="w-full p-3 bg-white border border-amber-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"></select>
           </div>
 
-          <!-- Calling Status Update & Deal Value / Revenue -->
           <div class="p-5 bg-slate-100/80 rounded-2xl border border-slate-200/80 space-y-4">
             <label class="block font-bold text-slate-900 uppercase tracking-wider">Log Call Outcome & Stage</label>
             <select id="update-lead-status" class="w-full p-3.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -468,7 +464,7 @@
 
   <!-- JAVASCRIPT & CLOUD SYNC LOGIC -->
   <script>
-    // 🔥 FIREBASE CLOUD CONFIGURATION (Apnar actual Firebase credentials)
+    // 🔥 FIREBASE CLOUD CONFIGURATION
     const firebaseConfig = {
       apiKey: "AIzaSyDcdMdXbskL1YVkXkd14_zCEEqIG4OFP3g",
       authDomain: "makedreamcrm.firebaseapp.com",
@@ -501,9 +497,10 @@
     let teamUsers = JSON.parse(localStorage.getItem('md_crm_users_v9')) || DEFAULT_USERS;
     let leadsData = JSON.parse(localStorage.getItem('md_crm_leads_v9')) || [];
 
-    // INITIALIZE CLOUD REALTIME LISTENER IF FIREBASE IS CONFIGURED
+    // REALTIME LISTENERS FOR LEADS & TEAM SALESMEN
     function initCloudSync() {
       if (isCloudEnabled && db) {
+        // 1. Realtime Leads Listener
         db.collection("leads").onSnapshot((snapshot) => {
           const cloudLeads = [];
           snapshot.forEach((doc) => {
@@ -515,53 +512,59 @@
             renderAllViews();
           }
         });
+
+        // 2. Realtime Team Users Listener
+        db.collection("team_users").onSnapshot((snapshot) => {
+          const cloudUsers = [];
+          snapshot.forEach((doc) => {
+            cloudUsers.push(doc.data());
+          });
+          if (cloudUsers.length > 0) {
+            teamUsers = cloudUsers;
+            localStorage.setItem('md_crm_users_v9', JSON.stringify(teamUsers));
+            initLoginUserDropdown();
+            populateAssigneeFilter();
+            populateNewLeadAssigneeDropdown();
+            if (currentUser && currentUser.role === 'admin') renderTeam();
+          }
+        });
       }
     }
 
-    function saveLeadsToStorage() {
+    function saveSingleLeadToCloud(lead) {
       localStorage.setItem('md_crm_leads_v9', JSON.stringify(leadsData));
       if (isCloudEnabled && db) {
-        leadsData.forEach(lead => {
-          db.collection("leads").doc(lead['Lead ID']).set(lead).catch(err => console.log(err));
-        });
+        db.collection("leads").doc(lead['Lead ID']).set(lead, { merge: true }).catch(err => console.log(err));
       }
     }
 
-    if (leadsData.length === 0) {
-      const sampleCategories = ['Cafe & Restaurant', 'Gym & Fitness', 'Doctor Clinic', 'Hotel & Guest House', 'Real Estate'];
-      const sampleServices = ['Website Development', 'Custom CRM Software', 'WhatsApp Marketing', 'SEO & Lead Gen'];
-      
-      for (let i = 1; i <= 160; i++) {
-        const salesIds = teamUsers.filter(u => u.role === 'exec').map(u => u.id);
-        const assignedSales = salesIds[i % salesIds.length];
+    function saveTeamUserToCloud(user) {
+      localStorage.setItem('md_crm_users_v9', JSON.stringify(teamUsers));
+      if (isCloudEnabled && db) {
+        db.collection("team_users").doc(user.id).set(user, { merge: true }).catch(err => console.log(err));
+      }
+    }
 
-        leadsData.push({
-          "Lead ID": 'KOL-LEAD-' + String(i).padStart(3, '0'),
-          "Business Name": `Kolkata Business #${i}`,
-          "Category": sampleCategories[i % sampleCategories.length],
-          "Address / Locality": `Sector ${i % 5 + 1}, Kolkata`,
-          "Public Phone": `+91 98300${10000 + i}`,
-          "Website Status": "No Website",
-          "Potential Service to Sell": sampleServices[i % sampleServices.length],
-          "Lead Priority": i % 3 === 0 ? "Medium" : "High",
-          "Auditor Notes": "Unserviced B2B business lead in regional scan.",
-          "Calling Update": "",
-          "assigned_to": assignedSales,
-          "crm_status": "New Lead",
-          "revenue": 0
+    // Default Seed Users to Firestore if empty
+    function seedInitialUsersToCloud() {
+      if (isCloudEnabled && db) {
+        DEFAULT_USERS.forEach(u => {
+          db.collection("team_users").doc(u.id).set(u, { merge: true });
         });
       }
-      saveLeadsToStorage();
     }
+    seedInitialUsersToCloud();
 
     let currentUser = null;
     let selectedLeadId = null;
 
     function initLoginUserDropdown() {
       const select = document.getElementById('login-user-select');
+      const currentSelected = select.value;
       select.innerHTML = teamUsers.map(u => `
         <option value="${u.id}">${u.name} (${u.role === 'admin' ? 'Super Admin' : 'Sales Executive'})</option>
       `).join('');
+      if (currentSelected) select.value = currentSelected;
     }
     initLoginUserDropdown();
 
@@ -822,7 +825,7 @@
       const lead = leadsData.find(l => l['Lead ID'] === selectedLeadId);
       if (lead) {
         lead.assigned_to = document.getElementById('detail-assignee-select').value;
-        saveLeadsToStorage();
+        saveSingleLeadToCloud(lead);
         renderAllViews();
       }
     }
@@ -834,7 +837,7 @@
         lead.crm_status = document.getElementById('update-lead-status').value;
         lead.revenue = Number(document.getElementById('update-lead-revenue').value) || 0;
         lead['Calling Update'] = document.getElementById('update-lead-calling-notes').value;
-        saveLeadsToStorage();
+        saveSingleLeadToCloud(lead);
         closeModal('modal-lead-detail');
         renderAllViews();
       }
@@ -847,7 +850,7 @@
         if (isCloudEnabled && db) {
           db.collection("leads").doc(selectedLeadId).delete().catch(err => console.log(err));
         }
-        saveLeadsToStorage();
+        localStorage.setItem('md_crm_leads_v9', JSON.stringify(leadsData));
         closeModal('modal-lead-detail');
         renderAllViews();
       }
@@ -865,7 +868,7 @@
       }
 
       const newLead = {
-        "Lead ID": 'KOL-LEAD-' + String(leadsData.length + 1).padStart(3, '0'),
+        "Lead ID": 'KOL-LEAD-' + String(Date.now()).slice(-6),
         "Business Name": document.getElementById('new-lead-name').value,
         "Category": document.getElementById('new-lead-category').value,
         "Public Phone": document.getElementById('new-lead-phone').value,
@@ -879,7 +882,7 @@
       };
 
       leadsData.unshift(newLead);
-      saveLeadsToStorage();
+      saveSingleLeadToCloud(newLead);
       closeModal('modal-add-lead');
       renderAllViews();
     }
@@ -890,6 +893,7 @@
       document.getElementById('excel-file-input').click();
     }
 
+    // BATCH EXCEL IMPORT TO FIREBASE CLOUD
     function handleExcelImport(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -915,14 +919,16 @@
 
           let addedCount = 0;
           const salesIds = teamUsers.filter(u => u.role === 'exec').map(u => u.id);
+          const batch = (isCloudEnabled && db) ? db.batch() : null;
 
           importedRows.forEach((row, idx) => {
             const bName = row['Business Name'] || row['Business'] || row['Company Name'] || row['Name'] || '';
             const phone = row['Public Phone'] || row['Phone'] || row['Contact'] || row['Mobile'] || '';
             
             if (bName && !String(bName).includes("KOLKATA METRO")) {
+              const leadId = row['Lead ID'] || ('KOL-IMP-' + String(Date.now() + idx).slice(-7));
               const newLeadObj = {
-                "Lead ID": row['Lead ID'] || ('KOL-IMP-' + String(leadsData.length + 1).padStart(3, '0')),
+                "Lead ID": leadId,
                 "Business Name": String(bName),
                 "Category": String(row['Category'] || 'General'),
                 "Address / Locality": String(row['Address / Locality'] || row['Address'] || row['Locality'] || ''),
@@ -937,13 +943,28 @@
               };
 
               leadsData.unshift(newLeadObj);
+              if (batch && isCloudEnabled) {
+                const docRef = db.collection("leads").doc(leadId);
+                batch.set(docRef, newLeadObj, { merge: true });
+              }
               addedCount++;
             }
           });
 
-          saveLeadsToStorage();
-          alert(`Successfully imported ${addedCount} leads from Excel file!`);
-          renderAllViews();
+          localStorage.setItem('md_crm_leads_v9', JSON.stringify(leadsData));
+          if (batch && isCloudEnabled) {
+            batch.commit().then(() => {
+              alert(`Successfully imported and synced ${addedCount} leads to Firebase Cloud!`);
+              renderAllViews();
+            }).catch(err => {
+              console.error(err);
+              alert("Imported locally, cloud batch sync encountered a delay.");
+              renderAllViews();
+            });
+          } else {
+            alert(`Successfully imported ${addedCount} leads!`);
+            renderAllViews();
+          }
         } catch (err) {
           console.error("Excel Import Error:", err);
           alert("Failed to parse Excel file.");
@@ -979,18 +1000,23 @@
       const name = document.getElementById('team-user-name').value;
       const pass = document.getElementById('team-user-password').value;
 
+      let targetUser = null;
       if (id) {
-        const user = teamUsers.find(u => u.id === id);
-        if (user) {
-          user.name = name;
-          user.pass = pass;
+        targetUser = teamUsers.find(u => u.id === id);
+        if (targetUser) {
+          targetUser.name = name;
+          targetUser.pass = pass;
         }
       } else {
         const newId = 'exec_' + Date.now();
-        teamUsers.push({ id: newId, name: name, role: 'exec', pass: pass });
+        targetUser = { id: newId, name: name, role: 'exec', pass: pass };
+        teamUsers.push(targetUser);
       }
 
-      localStorage.setItem('md_crm_users_v9', JSON.stringify(teamUsers));
+      if (targetUser) {
+        saveTeamUserToCloud(targetUser);
+      }
+
       initLoginUserDropdown();
       closeModal('modal-team');
       renderTeam();
