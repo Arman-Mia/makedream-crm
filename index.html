@@ -10,6 +10,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- SheetJS CDN for Excel Import/Export -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Firebase SDKs for Realtime Cloud Sync -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -64,7 +67,7 @@
       </form>
 
       <div class="mt-8 text-center text-xs text-slate-400 border-t border-slate-100 pt-5">
-        Select Correct User <code class="bg-slate-100 px-2.5 py-1 rounded-lg text-indigo-600 font-bold">And Password</code>
+        Admin Password: <code class="bg-slate-100 px-2.5 py-1 rounded-lg text-indigo-600 font-bold">Admin@1947</code>
       </div>
     </div>
   </div>
@@ -445,10 +448,10 @@
 
       <div class="pt-5 border-t border-slate-100 space-y-3">
         <div class="flex gap-3">
-          <a id="btn-call-link" href="#" class="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-2xl text-center font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-indigo-200 transition">
+          <a id="btn-call-link" href="#" class="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-indigo-200 transition">
             <i class="fa-solid fa-phone"></i> Call
           </a>
-          <a id="btn-wa-link" target="_blank" href="#" class="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-2xl text-center font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-200 transition">
+          <a id="btn-wa-link" target="_blank" href="#" class="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-emerald-200 transition">
             <i class="fa-brands fa-whatsapp"></i> WhatsApp
           </a>
           <button onclick="saveLeadStatusUpdate()" class="px-6 py-3.5 bg-slate-900 hover:bg-slate-950 active:scale-95 text-white rounded-2xl font-bold text-xs transition shadow-md">
@@ -463,8 +466,31 @@
     </div>
   </div>
 
-  <!-- JAVASCRIPT LOGIC -->
+  <!-- JAVASCRIPT & CLOUD SYNC LOGIC -->
   <script>
+    // 🔥 FIREBASE CLOUD CONFIGURATION (Apnar actual Firebase credentials)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDcdMdXbskL1YVkXkd14_zCEEqIG4OFP3g",
+      authDomain: "makedreamcrm.firebaseapp.com",
+      projectId: "makedreamcrm",
+      storageBucket: "makedreamcrm.firebasestorage.app",
+      messagingSenderId: "715890355419",
+      appId: "1:715890355419:web:7736058c3cc09ef86430fe"
+    };
+
+    let db = null;
+    let isCloudEnabled = false;
+
+    try {
+      if (firebaseConfig.apiKey !== "AIzaSyDummyKeyForDemoMakeDreamAgency") {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        isCloudEnabled = true;
+      }
+    } catch(e) {
+      console.log("Running on LocalStorage fallback mode.");
+    }
+
     const DEFAULT_USERS = [
       { id: 'admin', name: 'Super Admin', role: 'admin', pass: 'Admin@1947' },
       { id: 'atif', name: 'Atif', role: 'exec', pass: 'atif123' },
@@ -472,8 +498,35 @@
       { id: 'maitali', name: 'Maitali', role: 'exec', pass: 'maitali123' }
     ];
 
-    let teamUsers = JSON.parse(localStorage.getItem('md_crm_users_v8')) || DEFAULT_USERS;
-    let leadsData = JSON.parse(localStorage.getItem('md_crm_leads_v8')) || [];
+    let teamUsers = JSON.parse(localStorage.getItem('md_crm_users_v9')) || DEFAULT_USERS;
+    let leadsData = JSON.parse(localStorage.getItem('md_crm_leads_v9')) || [];
+
+    // INITIALIZE CLOUD REALTIME LISTENER IF FIREBASE IS CONFIGURED
+    function initCloudSync() {
+      if (isCloudEnabled && db) {
+        db.collection("leads").onSnapshot((snapshot) => {
+          const cloudLeads = [];
+          snapshot.forEach((doc) => {
+            cloudLeads.push(doc.data());
+          });
+          if (cloudLeads.length > 0) {
+            leadsData = cloudLeads;
+            localStorage.setItem('md_crm_leads_v9', JSON.stringify(leadsData));
+            renderAllViews();
+          }
+        });
+      }
+    }
+
+    function saveLeadsToStorage() {
+      localStorage.setItem('md_crm_leads_v9', JSON.stringify(leadsData));
+      if (isCloudEnabled && db) {
+        // Sync each lead to firestore
+        leadsData.forEach(lead => {
+          db.collection("leads").doc(lead['Lead ID']).set(lead).catch(err => console.log(err));
+        });
+      }
+    }
 
     if (leadsData.length === 0) {
       const sampleCategories = ['Cafe & Restaurant', 'Gym & Fitness', 'Doctor Clinic', 'Hotel & Guest House', 'Real Estate'];
@@ -499,8 +552,7 @@
           "revenue": 0
         });
       }
-      localStorage.setItem('md_crm_leads_v8', JSON.stringify(leadsData));
-      localStorage.setItem('md_crm_users_v8', JSON.stringify(teamUsers));
+      saveLeadsToStorage();
     }
 
     let currentUser = null;
@@ -550,6 +602,7 @@
         populateAssigneeFilter();
         populateNewLeadAssigneeDropdown();
         renderAllViews();
+        initCloudSync();
       } else {
         document.getElementById('login-error').classList.remove('hidden');
       }
@@ -590,7 +643,7 @@
       renderDashboard();
       renderLeadsTable();
       renderKanban();
-      if (currentUser.role === 'admin') renderTeam();
+      if (currentUser && currentUser.role === 'admin') renderTeam();
     }
 
     function renderDashboard() {
@@ -690,7 +743,7 @@
     }
 
     function renderTeam() {
-      if (currentUser.role !== 'admin') return;
+      if (!currentUser || currentUser.role !== 'admin') return;
       const sales = teamUsers.filter(u => u.role === 'exec');
       document.getElementById('team-cards-container').innerHTML = sales.map(s => {
         const sLeads = leadsData.filter(l => l.assigned_to === s.id);
@@ -770,7 +823,7 @@
       const lead = leadsData.find(l => l['Lead ID'] === selectedLeadId);
       if (lead) {
         lead.assigned_to = document.getElementById('detail-assignee-select').value;
-        localStorage.setItem('md_crm_leads_v8', JSON.stringify(leadsData));
+        saveLeadsToStorage();
         renderAllViews();
       }
     }
@@ -782,7 +835,7 @@
         lead.crm_status = document.getElementById('update-lead-status').value;
         lead.revenue = Number(document.getElementById('update-lead-revenue').value) || 0;
         lead['Calling Update'] = document.getElementById('update-lead-calling-notes').value;
-        localStorage.setItem('md_crm_leads_v8', JSON.stringify(leadsData));
+        saveLeadsToStorage();
         closeModal('modal-lead-detail');
         renderAllViews();
       }
@@ -792,7 +845,10 @@
       if (!selectedLeadId || currentUser.role !== 'admin') return;
       if (confirm('Are you sure you want to delete this lead?')) {
         leadsData = leadsData.filter(l => l['Lead ID'] !== selectedLeadId);
-        localStorage.setItem('md_crm_leads_v8', JSON.stringify(leadsData));
+        if (isCloudEnabled && db) {
+          db.collection("leads").doc(selectedLeadId).delete().catch(err => console.log(err));
+        }
+        saveLeadsToStorage();
         closeModal('modal-lead-detail');
         renderAllViews();
       }
@@ -824,7 +880,7 @@
       };
 
       leadsData.unshift(newLead);
-      localStorage.setItem('md_crm_leads_v8', JSON.stringify(leadsData));
+      saveLeadsToStorage();
       closeModal('modal-add-lead');
       renderAllViews();
     }
@@ -835,7 +891,6 @@
       document.getElementById('excel-file-input').click();
     }
 
-    // FIXED SHEETPARSER FOR MULTI-SHEET EXCEL FILES (AUTOMATICALLY FINDS 'Lead Database')
     function handleExcelImport(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -846,7 +901,6 @@
           const data = new Uint8Array(evt.target.result);
           const workbook = XLSX.read(data, { type: 'array' });
           
-          // Check if 'Lead Database' sheet exists, otherwise pick the first sheet
           let targetSheetName = workbook.SheetNames[0];
           if (workbook.SheetNames.includes('Lead Database')) {
             targetSheetName = 'Lead Database';
@@ -867,7 +921,6 @@
             const bName = row['Business Name'] || row['Business'] || row['Company Name'] || row['Name'] || '';
             const phone = row['Public Phone'] || row['Phone'] || row['Contact'] || row['Mobile'] || '';
             
-            // Filter out summary/header rows if any
             if (bName && !String(bName).includes("KOLKATA METRO")) {
               const newLeadObj = {
                 "Lead ID": row['Lead ID'] || ('KOL-IMP-' + String(leadsData.length + 1).padStart(3, '0')),
@@ -889,12 +942,12 @@
             }
           });
 
-          localStorage.setItem('md_crm_leads_v8', JSON.stringify(leadsData));
+          saveLeadsToStorage();
           alert(`Successfully imported ${addedCount} leads from Excel file!`);
           renderAllViews();
         } catch (err) {
           console.error("Excel Import Error:", err);
-          alert("Failed to parse Excel file. Please ensure it is a valid .xlsx or .csv file.");
+          alert("Failed to parse Excel file.");
         }
       };
       reader.readAsArrayBuffer(file);
@@ -938,7 +991,7 @@
         teamUsers.push({ id: newId, name: name, role: 'exec', pass: pass });
       }
 
-      localStorage.setItem('md_crm_users_v8', JSON.stringify(teamUsers));
+      localStorage.setItem('md_crm_users_v9', JSON.stringify(teamUsers));
       initLoginUserDropdown();
       closeModal('modal-team');
       renderTeam();
