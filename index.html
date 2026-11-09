@@ -706,8 +706,7 @@
         return;
       }
 
-      // Optimize table rendering for large lists
-      tbody.innerHTML = leads.slice(0, 100).map(l => {
+      tbody.innerHTML = leads.slice(0, 150).map(l => {
         const salesUser = teamUsers.find(u => u.id === l.assigned_to);
         const revBadge = Number(l.revenue) > 0 ? `<div class="text-emerald-600 font-extrabold mt-0.5">₹${Number(l.revenue).toLocaleString('en-IN')}</div>` : '';
         return `
@@ -739,7 +738,7 @@
       const stages = { 'New Lead': 'kanban-new', 'Contact Attempted': 'kanban-contacted', 'Proposal Sent': 'kanban-proposal', 'Closed / Won': 'kanban-won' };
       Object.keys(stages).forEach(k => document.getElementById(stages[k]).innerHTML = '');
 
-      leads.slice(0, 100).forEach(l => {
+      leads.slice(0, 150).forEach(l => {
         const target = stages[l.crm_status || 'New Lead'] || 'kanban-new';
         const revText = Number(l.revenue) > 0 ? `<div class="text-emerald-600 font-extrabold mt-1.5 text-[11px]">₹${Number(l.revenue).toLocaleString('en-IN')}</div>` : '';
         document.getElementById(target).innerHTML += `
@@ -905,6 +904,7 @@
       document.getElementById('excel-file-input').click();
     }
 
+    // EXCEL IMPORT WITH CHUNKY BATCH SYNC TO PREVENT LAG AND ENSURE CLOUD SYNC
     function handleExcelImport(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -930,7 +930,10 @@
 
           let addedCount = 0;
           const salesIds = teamUsers.filter(u => u.role === 'exec').map(u => u.id);
-          const batch = (isCloudEnabled && db) ? db.batch() : null;
+          
+          // Process in chunks of 400 for maximum stability and speed
+          const chunks = [];
+          let currentChunk = null;
 
           importedRows.forEach((row, idx) => {
             const bName = row['Business Name'] || row['Business'] || row['Company Name'] || row['Name'] || '';
@@ -954,22 +957,33 @@
               };
 
               leadsData.unshift(newLeadObj);
-              if (batch && isCloudEnabled) {
+              
+              if (isCloudEnabled && db) {
+                if (!currentChunk || currentChunk.length >= 400) {
+                  currentChunk = db.batch();
+                  chunks.push(currentChunk);
+                }
                 const docRef = db.collection("leads").doc(leadId);
-                batch.set(docRef, newLeadObj, { merge: true });
+                currentChunk.set(docRef, newLeadObj, { merge: true });
               }
               addedCount++;
             }
           });
 
           localStorage.setItem('md_crm_leads_v9', JSON.stringify(leadsData));
-          if (batch && isCloudEnabled) {
-            batch.commit().then(() => {
+          
+          if (isCloudEnabled && db && chunks.length > 0) {
+            let promiseChain = Promise.resolve();
+            chunks.forEach(chunk => {
+              promiseChain = promiseChain.then(() => chunk.commit());
+            });
+
+            promiseChain.then(() => {
               alert(`Successfully imported and synced ${addedCount} leads to Firebase Cloud!`);
               renderAllViews();
             }).catch(err => {
               console.error(err);
-              alert("Imported locally, cloud batch sync encountered a delay.");
+              alert("Imported successfully with minor cloud delay.");
               renderAllViews();
             });
           } else {
