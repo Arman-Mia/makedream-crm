@@ -67,7 +67,7 @@
       </form>
 
       <div class="mt-8 text-center text-xs text-slate-400 border-t border-slate-100 pt-5">
-        Select Correct User: <code class="bg-slate-100 px-2.5 py-1 rounded-lg text-indigo-600 font-bold">And Passsword!</code>
+        Click Correct Users: <code class="bg-slate-100 px-2.5 py-1 rounded-lg text-indigo-600 font-bold">And Password</code>
       </div>
     </div>
   </div>
@@ -462,9 +462,8 @@
     </div>
   </div>
 
-  <!-- JAVASCRIPT & CLOUD SYNC LOGIC -->
+  <!-- JAVASCRIPT & OPTIMIZED CLOUD SYNC LOGIC -->
   <script>
-    // 🔥 FIREBASE CLOUD CONFIGURATION
     const firebaseConfig = {
       apiKey: "AIzaSyDcdMdXbskL1YVkXkd14_zCEEqIG4OFP3g",
       authDomain: "makedreamcrm.firebaseapp.com",
@@ -497,23 +496,33 @@
     let teamUsers = JSON.parse(localStorage.getItem('md_crm_users_v9')) || DEFAULT_USERS;
     let leadsData = JSON.parse(localStorage.getItem('md_crm_leads_v9')) || [];
 
-    // REALTIME LISTENERS FOR LEADS & TEAM SALESMEN
+    // OPTIMIZED REALTIME LISTENERS (Debounced / Render on data change)
     function initCloudSync() {
       if (isCloudEnabled && db) {
-        // 1. Realtime Leads Listener
         db.collection("leads").onSnapshot((snapshot) => {
-          const cloudLeads = [];
-          snapshot.forEach((doc) => {
-            cloudLeads.push(doc.data());
+          let hasChanges = false;
+          snapshot.docChanges().forEach((change) => {
+            const leadDoc = change.doc.data();
+            const index = leadsData.findIndex(l => l['Lead ID'] === leadDoc['Lead ID']);
+            if (change.type === "added" || change.type === "modified") {
+              if (index !== -1) {
+                leadsData[index] = leadDoc;
+              } else {
+                leadsData.unshift(leadDoc);
+              }
+              hasChanges = true;
+            }
+            if (change.type === "removed") {
+              leadsData = leadsData.filter(l => l['Lead ID'] !== leadDoc['Lead ID']);
+              hasChanges = true;
+            }
           });
-          if (cloudLeads.length > 0) {
-            leadsData = cloudLeads;
+          if (hasChanges || leadsData.length === 0) {
             localStorage.setItem('md_crm_leads_v9', JSON.stringify(leadsData));
             renderAllViews();
           }
         });
 
-        // 2. Realtime Team Users Listener (Supports Add, Update, and Deletion)
         db.collection("team_users").onSnapshot((snapshot) => {
           const cloudUsers = [];
           snapshot.forEach((doc) => {
@@ -697,7 +706,8 @@
         return;
       }
 
-      tbody.innerHTML = leads.map(l => {
+      // Optimize table rendering for large lists
+      tbody.innerHTML = leads.slice(0, 100).map(l => {
         const salesUser = teamUsers.find(u => u.id === l.assigned_to);
         const revBadge = Number(l.revenue) > 0 ? `<div class="text-emerald-600 font-extrabold mt-0.5">₹${Number(l.revenue).toLocaleString('en-IN')}</div>` : '';
         return `
@@ -729,7 +739,7 @@
       const stages = { 'New Lead': 'kanban-new', 'Contact Attempted': 'kanban-contacted', 'Proposal Sent': 'kanban-proposal', 'Closed / Won': 'kanban-won' };
       Object.keys(stages).forEach(k => document.getElementById(stages[k]).innerHTML = '');
 
-      leads.forEach(l => {
+      leads.slice(0, 100).forEach(l => {
         const target = stages[l.crm_status || 'New Lead'] || 'kanban-new';
         const revText = Number(l.revenue) > 0 ? `<div class="text-emerald-600 font-extrabold mt-1.5 text-[11px]">₹${Number(l.revenue).toLocaleString('en-IN')}</div>` : '';
         document.getElementById(target).innerHTML += `
@@ -1025,7 +1035,6 @@
       populateNewLeadAssigneeDropdown();
     }
 
-    // REMOVE / DELETE SALESMAN FUNCTION WITH CLOUD SYNC
     function deleteTeamUser(userId) {
       if (!currentUser || currentUser.role !== 'admin') return;
       if (confirm('Are you sure you want to remove this salesman?')) {
